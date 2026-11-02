@@ -58,6 +58,13 @@ cv.addEventListener('contextrestored',size);
 stage.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 const NAMES=['以恩','以恩','以恩','以恩','爸爸','媽媽','爸爸'];
 const TAG={'以恩':'#ff7aa8','爸爸':'#5b8def','媽媽':'#b07be6'};
+// 名字標籤只畫一次存起來，之後每一格直接貼上（避免每格重算字型，iPhone 會越跑越慢）
+const LF=40,LABEL={};
+function makeLabels(){for(const n in TAG){const c=document.createElement('canvas'),x=c.getContext('2d'),f=`700 ${LF}px "Chiron GoRound TC","PingFang TC","Heiti TC",sans-serif`;
+  x.font=f;const tw=Math.ceil(x.measureText(n).width);c.width=tw+LF;c.height=LF*1.5;x.font=f;x.fillStyle=TAG[n];
+  const r=c.height/2;x.beginPath();x.moveTo(r,0);x.lineTo(c.width-r,0);x.arc(c.width-r,r,r,-Math.PI/2,Math.PI/2);x.lineTo(r,c.height);x.arc(r,r,r,Math.PI/2,Math.PI*1.5);x.fill();
+  x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.fillText(n,c.width/2,c.height*.53);LABEL[n]=c}}
+makeLabels();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(makeLabels);
 const kids=SRC.map((s,i)=>{const im=new Image();im.src=s;return{im,i,name:NAMES[i],jump:0,spin:0,x:0,y:0,r:0}});
 /* ---------- 聲音：全部用 Web Audio 即時合成 ---------- */
 let AC=null,master=null,musicOn=false,nextT=0,step=0,timer=null;
@@ -142,9 +149,8 @@ function render(now){
     ctx.globalAlpha=.75+.25*(k.depth+1)/2;
     ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore();
     k.x=x;k.y=y;k.r=sz/2;
-    const fs=Math.max(12,sz*.15);ctx.save();ctx.globalAlpha=.7+.3*(k.depth+1)/2;ctx.font=`700 ${fs}px "Chiron GoRound TC","PingFang TC",sans-serif`;
-    const tw=ctx.measureText(k.name).width,ly=y+h/2+fs*.4;ctx.fillStyle=TAG[k.name];ctx.beginPath();ctx.roundRect(x-tw/2-fs*.5,ly,tw+fs,fs*1.5,fs*.75);ctx.fill();
-    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(k.name,x,ly+fs*.78);ctx.restore();
+    const fs=Math.max(12,sz*.15),L=LABEL[k.name];if(L){const lw=L.width*fs/LF,lh=L.height*fs/LF;
+    ctx.globalAlpha=.7+.3*(k.depth+1)/2;ctx.drawImage(L,x-lw/2,y+h/2+fs*.4,lw,lh);ctx.globalAlpha=1}
   };
   back.forEach(draw);
   sun(cx,cy-base*.05,base*.32,t);
